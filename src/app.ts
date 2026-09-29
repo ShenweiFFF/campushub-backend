@@ -5,11 +5,14 @@ import express, {
   Response,
 } from "express";
 import healthRouter from "./routes/health.routes";
+import reservationRouter from "./routes/reservation.routes";
+import { AppError, ErrorResponse } from "./types/reservation";
 
 const app: Application = express();
 
 app.use(express.json());
 app.use("/api/v1", healthRouter);
+app.use("/api/v1", reservationRouter);
 
 function errorHandler(
   err: unknown,
@@ -17,9 +20,16 @@ function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
+  if (err instanceof AppError) {
+    const payload: ErrorResponse = { code: err.code, message: err.message };
+    res.status(err.statusCode).json(payload);
+    return;
+  }
+
   const message: string =
     err instanceof Error ? err.message : "Internal Server Error";
-  res.status(500).json({ error: message });
+  const payload: ErrorResponse = { code: "INTERNAL_ERROR", message };
+  res.status(500).json(payload);
 }
 
 app.use(errorHandler);

@@ -1,0 +1,194 @@
+openapi: 3.0.3
+info:
+  title: CampusHub Reservation API
+  version: 1.0.0
+  description: API specification for managing campus resources and time-slotted reservations.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local Development Server
+paths:
+  /resources:
+    get:
+      summary: List campus resources
+      description: Returns all resources. Optionally filter by resource type.
+      operationId: listResources
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: Resource type filter. When provided, must be a non-empty string.
+          schema:
+            type: string
+            minLength: 1
+            enum:
+              - ROOM
+              - EQUIPMENT
+              - LAB
+              - STUDY_ROOM
+      responses:
+        "200":
+          description: Array of Resource objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Resource"
+        "400":
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: VALIDATION_ERROR
+                message: type must be a non-empty string when provided.
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /reservations:
+    post:
+      summary: Create a reservation
+      description: Creates a time-slotted reservation. Returns 409 when the resource is already booked for an overlapping interval.
+      operationId: createReservation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Reservation"
+      responses:
+        "201":
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: Missing or invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Resource already reserved for this time block
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: DOUBLE_BOOKING
+                message: Resource is already reserved for this time slot.
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /reservations/user/{userId}:
+    get:
+      summary: List active reservations for a student
+      description: Returns PENDING and CONFIRMED reservations for the given user.
+      operationId: listUserReservations
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Array of active Reservation objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reservation"
+        "400":
+          description: Invalid path parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    ResourceType:
+      type: string
+      enum:
+        - ROOM
+        - EQUIPMENT
+        - LAB
+        - STUDY_ROOM
+    Resource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - type
+        - location
+        - isAvailable
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/ResourceType"
+        location:
+          type: string
+        isAvailable:
+          type: boolean
+    ReservationStatus:
+      type: string
+      enum:
+        - PENDING
+        - CONFIRMED
+        - CANCELLED
+    Reservation:
+      type: object
+      additionalProperties: false
+      required:
+        - resourceId
+        - userId
+        - startTime
+        - endTime
+      properties:
+        id:
+          type: string
+        resourceId:
+          type: string
+        userId:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time
+        endTime:
+          type: string
+          format: date-time
+          description: ISO 8601 date-time
+        status:
+          $ref: "#/components/schemas/ReservationStatus"
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
