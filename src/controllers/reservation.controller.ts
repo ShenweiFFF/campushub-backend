@@ -2,35 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import {
   createReservation,
   listActiveReservationsByUser,
-  listResources,
 } from "../services/reservation.service";
-import {
-  AppError,
-  CreateReservationInput,
-  Reservation,
-  Resource,
-} from "../types/reservation";
-
-function readQueryString(value: unknown): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (Array.isArray(value)) {
-    throw new AppError(
-      400,
-      "VALIDATION_ERROR",
-      "type must be a non-empty string when provided.",
-    );
-  }
-  if (typeof value !== "string") {
-    throw new AppError(
-      400,
-      "VALIDATION_ERROR",
-      "type must be a non-empty string when provided.",
-    );
-  }
-  return value;
-}
+import { AppError, CreateReservationInput, Reservation } from "../types/reservation";
 
 function parseCreateBody(body: unknown): CreateReservationInput {
   if (body === null || typeof body !== "object") {
@@ -59,20 +32,6 @@ function parseCreateBody(body: unknown): CreateReservationInput {
   return { resourceId, userId, startTime, endTime };
 }
 
-export async function getResources(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const typeFilter: string | undefined = readQueryString(req.query.type);
-    const payload: Resource[] = listResources(typeFilter);
-    res.status(200).json(payload);
-  } catch (err: unknown) {
-    next(err);
-  }
-}
-
 export async function postReservation(
   req: Request,
   res: Response,
@@ -80,7 +39,7 @@ export async function postReservation(
 ): Promise<void> {
   try {
     const input: CreateReservationInput = parseCreateBody(req.body);
-    const payload: Reservation = createReservation(input);
+    const payload: Reservation = await createReservation(input);
     res.status(201).json(payload);
   } catch (err: unknown) {
     next(err);
@@ -97,8 +56,7 @@ export async function getUserReservations(
     if (typeof rawUserId !== "string" || rawUserId.trim().length === 0) {
       throw new AppError(400, "VALIDATION_ERROR", "userId must be a non-empty string.");
     }
-    const userId: string = rawUserId;
-    const payload: Reservation[] = listActiveReservationsByUser(userId);
+    const payload: Reservation[] = await listActiveReservationsByUser(rawUserId);
     res.status(200).json(payload);
   } catch (err: unknown) {
     next(err);

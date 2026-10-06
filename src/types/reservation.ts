@@ -2,6 +2,12 @@ export type ResourceType = "ROOM" | "EQUIPMENT" | "LAB" | "STUDY_ROOM";
 
 export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 
+export const RESERVATION_STATUSES: readonly ReservationStatus[] = [
+  "PENDING",
+  "CONFIRMED",
+  "CANCELLED",
+];
+
 export interface Resource {
   id: string;
   name: string;

@@ -4,14 +4,18 @@ import express, {
   Request,
   Response,
 } from "express";
+import { connectDatabase } from "./config/database";
+import { config } from "./config/env";
 import healthRouter from "./routes/health.routes";
 import reservationRouter from "./routes/reservation.routes";
+import resourceRouter from "./routes/resource.routes";
 import { AppError, ErrorResponse } from "./types/reservation";
 
 const app: Application = express();
 
 app.use(express.json());
 app.use("/api/v1", healthRouter);
+app.use("/api/v1", resourceRouter);
 app.use("/api/v1", reservationRouter);
 
 function errorHandler(
@@ -34,8 +38,16 @@ function errorHandler(
 
 app.use(errorHandler);
 
-const port: number = Number(process.env.PORT) || 3000;
+async function start(): Promise<void> {
+  await connectDatabase();
+  app.listen(config.port, (): void => {
+    console.log(`CampusHub backend listening on port ${config.port}`);
+  });
+}
 
-app.listen(port, (): void => {
-  console.log(`CampusHub backend listening on port ${port}`);
+start().catch((err: unknown): void => {
+  console.error("Failed to start CampusHub backend:", err);
+  process.exit(1);
 });
+
+export default app;

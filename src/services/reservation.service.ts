@@ -1,49 +1,13 @@
+import { isValidObjectId } from "mongoose";
 import {
-  AppError,
-  CreateReservationInput,
-  isResourceType,
-  Reservation,
-  Resource,
-  ResourceType,
-} from "../types/reservation";
+  ReservationDocument,
+  ReservationModel,
+} from "../models/Reservation.model";
+import { ResourceModel } from "../models/Resource.model";
+import { AppError, CreateReservationInput, Reservation } from "../types/reservation";
 
 const ISO_8601_DATE_TIME: RegExp =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
-
-const resources: Resource[] = [
-  {
-    id: "res-101",
-    name: "Study Room 302",
-    type: "STUDY_ROOM",
-    location: "Library Floor 3",
-    isAvailable: true,
-  },
-  {
-    id: "res-102",
-    name: "3D Printer A",
-    type: "EQUIPMENT",
-    location: "Maker Space",
-    isAvailable: true,
-  },
-  {
-    id: "res-103",
-    name: "Chem Lab 1",
-    type: "LAB",
-    location: "Science Building",
-    isAvailable: true,
-  },
-  {
-    id: "res-104",
-    name: "Lecture Room 201",
-    type: "ROOM",
-    location: "Main Hall",
-    isAvailable: true,
-  },
-];
-
-const reservations: Reservation[] = [];
-
-let reservationCounter: number = 1;
 
 function assertNonEmptyString(value: unknown, fieldName: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -57,41 +21,23 @@ function assertNonEmptyString(value: unknown, fieldName: string): string {
 }
 
 function isIso8601DateTime(value: string): boolean {
-  if (!ISO_8601_DATE_TIME.test(value)) {
-    return false;
-  }
-  const parsed: number = Date.parse(value);
-  return !Number.isNaN(parsed);
+  return ISO_8601_DATE_TIME.test(value) && !Number.isNaN(Date.parse(value));
 }
 
-function intervalsOverlap(
-  startA: string,
-  endA: string,
-  startB: string,
-  endB: string,
-): boolean {
-  return Date.parse(startA) < Date.parse(endB) && Date.parse(startB) < Date.parse(endA);
+function toReservationDto(doc: ReservationDocument): Reservation {
+  return {
+    id: doc._id.toString(),
+    resourceId: doc.resourceId.toString(),
+    userId: doc.userId,
+    startTime: doc.startTime.toISOString(),
+    endTime: doc.endTime.toISOString(),
+    status: doc.status,
+  };
 }
 
-export function listResources(typeFilter?: string): Resource[] {
-  if (typeFilter === undefined) {
-    return [...resources];
-  }
-
-  const normalized: string = assertNonEmptyString(typeFilter, "type");
-  if (!isResourceType(normalized)) {
-    throw new AppError(
-      400,
-      "VALIDATION_ERROR",
-      "type must be a non-empty string when provided.",
-    );
-  }
-
-  const resourceType: ResourceType = normalized;
-  return resources.filter((resource: Resource) => resource.type === resourceType);
-}
-
-export function createReservation(input: CreateReservationInput): Reservation {
+export async function createReservation(
+  input: CreateReservationInput,
+): Promise<Reservation> {
   const resourceId: string = assertNonEmptyString(input.resourceId, "resourceId");
   const userId: string = assertNonEmptyString(input.userId, "userId");
   const startTime: string = assertNonEmptyString(input.startTime, "startTime");
@@ -105,7 +51,9 @@ export function createReservation(input: CreateReservationInput): Reservation {
     );
   }
 
-  if (Date.parse(endTime) <= Date.parse(startTime)) {
+  const start: Date = new Date(startTime);
+  const end: Date = new Date(endTime);
+  if (end.getTime() <= start.getTime()) {
     throw new AppError(
       400,
       "VALIDATION_ERROR",
@@ -113,24 +61,25 @@ export function createReservation(input: CreateReservationInput): Reservation {
     );
   }
 
-  const resource: Resource | undefined = resources.find(
-    (item: Resource) => item.id === resourceId,
-  );
-  if (resource === undefined) {
-    throw new AppError(400, "VALIDATION_ERROR", "resourceId does not match a known resource.");
+  const resourceExists: boolean =
+    isValidObjectId(resourceId) &&
+    (await ResourceModel.exists({ _id: resourceId })) !== null;
+  if (!resourceExists) {
+    throw new AppError(
+      400,
+      "VALIDATION_ERROR",
+      "resourceId does not match a known resource.",
+    );
   }
 
-  const hasConflict: boolean = reservations.some((existing: Reservation) => {
-    if (existing.resourceId !== resourceId) {
-      return false;
-    }
-    if (existing.status === "CANCELLED") {
-      return false;
-    }
-    return intervalsOverlap(existing.startTime, existing.endTime, startTime, endTime);
-  });
-
-  if (hasConflict) {
+  const conflict: boolean =
+    (await ReservationModel.exists({
+      resourceId,
+      status: { $ne: "CANCELLED" },
+      startTime: { $lt: end },
+      endTime: { $gt: start },
+    })) !== null;
+  if (conflict) {
     throw new AppError(
       409,
       "DOUBLE_BOOKING",
@@ -138,23 +87,23 @@ export function createReservation(input: CreateReservationInput): Reservation {
     );
   }
 
-  const created: Reservation = {
-    id: `rsv-${String(reservationCounter)}`,
+  const created: ReservationDocument = await ReservationModel.create({
     resourceId,
     userId,
-    startTime,
-    endTime,
+    startTime: start,
+    endTime: end,
     status: "PENDING",
-  };
-  reservationCounter += 1;
-  reservations.push(created);
-  return created;
+  });
+  return toReservationDto(created);
 }
 
-export function listActiveReservationsByUser(userId: string): Reservation[] {
+export async function listActiveReservationsByUser(
+  userId: string,
+): Promise<Reservation[]> {
   const normalizedUserId: string = assertNonEmptyString(userId, "userId");
-  return reservations.filter(
-    (reservation: Reservation) =>
-      reservation.userId === normalizedUserId && reservation.status !== "CANCELLED",
-  );
+  const docs: ReservationDocument[] = await ReservationModel.find({
+    userId: normalizedUserId,
+    status: { $ne: "CANCELLED" },
+  }).sort({ _id: 1 });
+  return docs.map(toReservationDto);
 }

@@ -1,24 +1,27 @@
-{
-  "name": "campushub-backend",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "dev": "tsc && node dist/app.js",
-    "build": "tsc"
-  },
-  "keywords": [],
-  "type": "commonjs",
-  "devDependencies": {
-    "@types/express": "^5.0.6",
-    "@types/node": "^26.6.2",
-    "eslint": "^10.11.0",
-    "prettier": "^3.9.8",
-    "ts-node": "^10.9.2",
-    "typescript": "^7.0.2"
-  },
-  "dependencies": {
-    "express": "^5.2.1",
-    "mongoose": "^9.10.2"
-  }
+﻿{
+    "name":  "campushub-backend",
+    "version":  "1.0.0",
+    "description":  "",
+    "main":  "index.js",
+    "scripts":  {
+                    "dev":  "tsc \u0026\u0026 node dist/app.js",
+                    "build":  "tsc",
+                    "seed":  "tsc \u0026\u0026 node dist/scripts/seed.js"
+                },
+    "keywords":  [
+
+                 ],
+    "type":  "commonjs",
+    "devDependencies":  {
+                            "@types/express":  "^5.0.6",
+                            "@types/node":  "^26.6.2",
+                            "eslint":  "^10.11.0",
+                            "prettier":  "^3.9.8",
+                            "ts-node":  "^10.9.2",
+                            "typescript":  "^7.0.2"
+                        },
+    "dependencies":  {
+                         "express":  "^5.2.1",
+                         "mongoose":  "^9.10.2"
+                     }
 }
