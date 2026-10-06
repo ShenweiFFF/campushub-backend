@@ -1,4 +1,4 @@
-﻿import { QueryFilter } from "mongoose";
+import { QueryFilter } from "mongoose";
 import { IResource, ResourceDocument, ResourceModel } from "../models/Resource.model";
 import {
   AppError,
