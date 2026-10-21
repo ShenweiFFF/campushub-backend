@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import {
+  cancelReservation,
+  confirmReservation,
   createReservation,
   listActiveReservationsByUser,
 } from "../services/reservation.service";
@@ -57,6 +59,39 @@ export async function getUserReservations(
       throw new AppError(400, "VALIDATION_ERROR", "userId must be a non-empty string.");
     }
     const payload: Reservation[] = await listActiveReservationsByUser(rawUserId);
+    res.status(200).json(payload);
+  } catch (err: unknown) {
+    next(err);
+  }
+}
+
+function readReservationId(value: string | string[] | undefined): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new AppError(400, "VALIDATION_ERROR", "id must be a non-empty string.");
+  }
+  return value;
+}
+
+export async function patchCancelReservation(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const payload: Reservation = await cancelReservation(readReservationId(req.params.id));
+    res.status(200).json(payload);
+  } catch (err: unknown) {
+    next(err);
+  }
+}
+
+export async function patchConfirmReservation(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const payload: Reservation = await confirmReservation(readReservationId(req.params.id));
     res.status(200).json(payload);
   } catch (err: unknown) {
     next(err);

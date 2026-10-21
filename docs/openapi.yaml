@@ -10,7 +10,7 @@ paths:
   /resources:
     get:
       summary: List campus resources
-      description: Returns all resources. Optionally filter by resource type.
+      description: Returns resources. Optionally filter by resource type and availability.
       operationId: listResources
       parameters:
         - name: type
@@ -25,6 +25,12 @@ paths:
               - EQUIPMENT
               - LAB
               - STUDY_ROOM
+        - name: isAvailable
+          in: query
+          required: false
+          description: When provided, must be true or false.
+          schema:
+            type: boolean
       responses:
         "200":
           description: Array of Resource objects
@@ -111,6 +117,86 @@ paths:
                   $ref: "#/components/schemas/Reservation"
         "400":
           description: Invalid path parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /reservations/{id}/cancel:
+    patch:
+      summary: Cancel a reservation
+      description: Sets status to CANCELLED. A cancelled reservation no longer blocks the time slot.
+      operationId: cancelReservation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Reservation cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: Invalid reservation id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /reservations/{id}/confirm:
+    patch:
+      summary: Confirm a reservation
+      description: Moves a PENDING reservation to CONFIRMED. Cancelled reservations cannot be confirmed.
+      operationId: confirmReservation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Reservation confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: Invalid id, or the reservation is already cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Another active reservation now occupies this slot
           content:
             application/json:
               schema:

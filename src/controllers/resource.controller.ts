@@ -16,6 +16,23 @@ function readQueryString(value: unknown): string | undefined {
   return value;
 }
 
+function readBooleanQuery(value: unknown): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  throw new AppError(
+    400,
+    "VALIDATION_ERROR",
+    "isAvailable must be true or false when provided.",
+  );
+}
+
 export async function getResources(
   req: Request,
   res: Response,
@@ -23,7 +40,8 @@ export async function getResources(
 ): Promise<void> {
   try {
     const typeFilter: string | undefined = readQueryString(req.query.type);
-    const payload: Resource[] = await listResources(typeFilter);
+    const isAvailable: boolean | undefined = readBooleanQuery(req.query.isAvailable);
+    const payload: Resource[] = await listResources(typeFilter, isAvailable);
     res.status(200).json(payload);
   } catch (err: unknown) {
     next(err);

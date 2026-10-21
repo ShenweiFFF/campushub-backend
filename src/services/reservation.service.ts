@@ -4,7 +4,14 @@ import {
   ReservationModel,
 } from "../models/Reservation.model";
 import { ResourceModel } from "../models/Resource.model";
-import { AppError, CreateReservationInput, Reservation } from "../types/reservation";
+import {
+  AppError,
+  CreateReservationInput,
+  Reservation,
+  ReservationStatus,
+} from "../types/reservation";
+
+const ACTIVE_STATUSES: readonly ReservationStatus[] = ["PENDING", "CONFIRMED"];
 
 const ISO_8601_DATE_TIME: RegExp =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
@@ -72,13 +79,7 @@ export async function createReservation(
     );
   }
 
-  const conflict: boolean =
-    (await ReservationModel.exists({
-      resourceId,
-      status: { $ne: "CANCELLED" },
-      startTime: { $lt: end },
-      endTime: { $gt: start },
-    })) !== null;
+  const conflict: boolean = await hasActiveOverlap(resourceId, start, end);
   if (conflict) {
     throw new AppError(
       409,
@@ -103,7 +104,74 @@ export async function listActiveReservationsByUser(
   const normalizedUserId: string = assertNonEmptyString(userId, "userId");
   const docs: ReservationDocument[] = await ReservationModel.find({
     userId: normalizedUserId,
-    status: { $ne: "CANCELLED" },
+    status: { $in: [...ACTIVE_STATUSES] },
   }).sort({ _id: 1 });
   return docs.map(toReservationDto);
+}
+
+export async function cancelReservation(id: string): Promise<Reservation> {
+  const doc: ReservationDocument = await findReservationOrThrow(id);
+  if (doc.status !== "CANCELLED") {
+    doc.status = "CANCELLED";
+    await doc.save();
+  }
+  return toReservationDto(doc);
+}
+
+export async function confirmReservation(id: string): Promise<Reservation> {
+  const doc: ReservationDocument = await findReservationOrThrow(id);
+  if (doc.status === "CANCELLED") {
+    throw new AppError(
+      400,
+      "VALIDATION_ERROR",
+      "A cancelled reservation cannot be confirmed.",
+    );
+  }
+  if (doc.status === "PENDING") {
+    const conflict: boolean = await hasActiveOverlap(
+      doc.resourceId.toString(),
+      doc.startTime,
+      doc.endTime,
+      doc._id.toString(),
+    );
+    if (conflict) {
+      throw new AppError(
+        409,
+        "DOUBLE_BOOKING",
+        "Resource is already reserved for this time slot.",
+      );
+    }
+    doc.status = "CONFIRMED";
+    await doc.save();
+  }
+  return toReservationDto(doc);
+}
+
+async function findReservationOrThrow(id: string): Promise<ReservationDocument> {
+  const reservationId: string = assertNonEmptyString(id, "id");
+  if (!isValidObjectId(reservationId)) {
+    throw new AppError(400, "VALIDATION_ERROR", "id must be a valid reservation id.");
+  }
+  const doc: ReservationDocument | null = await ReservationModel.findById(reservationId);
+  if (doc === null) {
+    throw new AppError(404, "NOT_FOUND", "Reservation not found.");
+  }
+  return doc;
+}
+
+async function hasActiveOverlap(
+  resourceId: string,
+  start: Date,
+  end: Date,
+  excludeId?: string,
+): Promise<boolean> {
+  const overlap: boolean =
+    (await ReservationModel.exists({
+      ...(excludeId === undefined ? {} : { _id: { $ne: excludeId } }),
+      resourceId,
+      status: { $in: [...ACTIVE_STATUSES] },
+      startTime: { $lt: end },
+      endTime: { $gt: start },
+    })) !== null;
+  return overlap;
 }

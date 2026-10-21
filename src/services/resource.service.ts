@@ -17,7 +17,10 @@ export function toResourceDto(doc: ResourceDocument): Resource {
   };
 }
 
-export async function listResources(typeFilter?: string): Promise<Resource[]> {
+export async function listResources(
+  typeFilter?: string,
+  isAvailable?: boolean,
+): Promise<Resource[]> {
   const filter: QueryFilter<IResource> = {};
 
   if (typeFilter !== undefined) {
@@ -30,6 +33,10 @@ export async function listResources(typeFilter?: string): Promise<Resource[]> {
     }
     const resourceType: ResourceType = typeFilter;
     filter.type = resourceType;
+  }
+
+  if (isAvailable !== undefined) {
+    filter.isAvailable = isAvailable;
   }
 
   const docs: ResourceDocument[] = await ResourceModel.find(filter).sort({ _id: 1 });

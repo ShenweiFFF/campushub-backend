@@ -11,4 +11,4 @@ Express + TypeScript + Mongoose, organised as routes -> controllers -> services 
 
 ## Endpoints
 
-See `docs/openapi.yaml`: `GET /resources`, `POST /reservations`, `GET /reservations/user/{userId}`, `GET /health`.
+See `docs/openapi.yaml`: `GET /resources`, `POST /reservations`, `GET /reservations/user/{userId}`, `PATCH /reservations/{id}/confirm`, `PATCH /reservations/{id}/cancel`, `GET /health`.
