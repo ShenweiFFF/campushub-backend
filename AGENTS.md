@@ -24,6 +24,9 @@ overriding them.
 - **Dependencies:** Do not add a new npm package without explicit
   approval. If a task seems to need one, stop and ask first instead of
   installing it.
+- **Frontend exception:** A React client lives in `client/` only. Do not
+  add React, Vite, or another web framework to the Express service. See
+  Section 5.
 
 ## 2. Architectural Boundaries (strict 3-tier separation)
 
@@ -67,6 +70,27 @@ When generating a commit message or PR description:
    rule in AGENTS.md").
 3. No emojis, no marketing language, no filler. Keep the whole message
    under ~150 words.
+
+## 5. Frontend Client (`client/`)
+
+The reservation UI is a Vite + React + TypeScript app under `client/`.
+This section is the frontend exception to the Express-only rule above.
+Backend files under the repository `src/` stay `.ts` and Express.
+
+- **Component architecture:** Functional components only. Every component
+  declares an explicit props interface.
+- **State management:** Use `useState`, `useEffect`, or a custom hook.
+  Do not call the API from JSX. Components call
+  `client/src/api/campushubApi.ts` from a hook or an event handler.
+- **Styling:** CSS modules. Do not add a UI framework or CSS library.
+- **HTTP:** Use `fetch` in the API module. Do not add axios unless
+  asked. Keep request and response types aligned with `docs/openapi.yaml`.
+- **JSX files:** React components are `.tsx` because JSX cannot live in
+  a `.ts` file. Non-component client code stays `.ts`. Do not add `.js`
+  source files.
+- **Errors:** Async UI keeps an `isLoading` flag and a visible error
+  state. A 409 from reservation creation must show an explicit conflict
+  message, not an unhandled rejection.
 
 ## Additional Agent Behavior
 

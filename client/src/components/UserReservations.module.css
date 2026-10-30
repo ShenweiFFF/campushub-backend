@@ -1,0 +1,74 @@
+.panel {
+  background: #fffaf2;
+  border: 1px solid #e3d6bf;
+  border-radius: 18px;
+  padding: 20px;
+}
+
+.panel h2 {
+  font-family: Georgia, "Iowan Old Style", serif;
+  font-size: 1.5rem;
+  margin-bottom: 14px;
+}
+
+.status {
+  color: #5d564b;
+}
+
+.error {
+  background: #fde8e4;
+  color: #7a2e24;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 10px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #e3d6bf;
+  border-radius: 14px;
+  padding: 12px;
+  background: #f7f1e4;
+}
+
+.name {
+  font-weight: 700;
+}
+
+.when,
+.meta {
+  color: #5d564b;
+  font-size: 0.92rem;
+}
+
+.cancel {
+  border: 1px solid #8a3b2f;
+  background: transparent;
+  color: #8a3b2f;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cancel:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+@media (max-width: 560px) {
+  .item {
+    display: grid;
+  }
+}

@@ -1,0 +1,31 @@
+:root {
+  color: #1d2430;
+  background: #efe6d4;
+  font-family: "Segoe UI", "Avenir Next", sans-serif;
+  line-height: 1.45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
