@@ -1,45 +1,22 @@
+import {
+  RESERVATION_STATUSES,
+  RESOURCE_TYPES,
+  type CreateReservationDTO,
+  type Reservation,
+  type ReservationStatus,
+  type Resource,
+  type ResourceType,
+} from "../../../src/types/contracts.ts";
+
+export type {
+  CreateReservationDTO,
+  Reservation,
+  ReservationStatus,
+  Resource,
+  ResourceType,
+};
+
 const API_BASE: string = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
-
-const RESOURCE_TYPES: readonly ResourceType[] = [
-  "ROOM",
-  "EQUIPMENT",
-  "LAB",
-  "STUDY_ROOM",
-];
-
-const RESERVATION_STATUSES: readonly ReservationStatus[] = [
-  "PENDING",
-  "CONFIRMED",
-  "CANCELLED",
-];
-
-export type ResourceType = "ROOM" | "EQUIPMENT" | "LAB" | "STUDY_ROOM";
-
-export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
-
-export interface Resource {
-  id: string;
-  name: string;
-  type: ResourceType;
-  location: string;
-  isAvailable: boolean;
-}
-
-export interface CreateReservationDTO {
-  resourceId: string;
-  userId: string;
-  startTime: string;
-  endTime: string;
-}
-
-export interface Reservation {
-  id: string;
-  resourceId: string;
-  userId: string;
-  startTime: string;
-  endTime: string;
-  status: ReservationStatus;
-}
 
 export class ApiError extends Error {
   readonly status: number;

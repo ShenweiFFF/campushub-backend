@@ -1,11 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FormEvent, JSX } from "react";
-import {
-  createReservation,
-  errorMessage,
-  fetchResources,
-  type Resource,
-} from "../api/campushubApi";
+import { useCreateReservation, useResourceOptions } from "../hooks/useReservations";
+import type { Resource } from "../api/campushubApi";
 import styles from "./BookingForm.module.css";
 
 interface BookingFormProps {
@@ -21,103 +17,34 @@ export default function BookingForm({
   onResourceIdChange,
   onBooked,
 }: BookingFormProps): JSX.Element {
-  const [resources, setResources] = useState<Resource[]>([]);
+  const options = useResourceOptions();
+  const booking = useCreateReservation(onBooked);
   const [startTime, setStartTime] = useState<string>("");
   const [endTime, setEndTime] = useState<string>("");
-  const [isLoadingOptions, setIsLoadingOptions] = useState<boolean>(true);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active: boolean = true;
-    fetchResources()
-      .then((items: Resource[]): void => {
-        if (active) {
-          setResources(items);
-          setError(null);
-        }
-      })
-      .catch((err: unknown): void => {
-        if (active) {
-          setResources([]);
-          setError(errorMessage(err));
-        }
-      })
-      .finally((): void => {
-        if (active) {
-          setIsLoadingOptions(false);
-        }
-      });
-
-    return (): void => {
-      active = false;
-    };
-  }, []);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-    setSuccess(null);
-
-    const validationError: string | null = validateBooking(
-      userId,
-      resourceId,
-      startTime,
-      endTime,
-    );
-    if (validationError !== null) {
-      setError(validationError);
-      return;
-    }
-
-    const startIso: string | null = toIsoDateTime(startTime);
-    const endIso: string | null = toIsoDateTime(endTime);
-    if (startIso === null || endIso === null) {
-      setError("Enter a valid start and end time.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await createReservation({
-        resourceId,
-        userId: userId.trim(),
-        startTime: startIso,
-        endTime: endIso,
-      });
-      setSuccess("Reservation created.");
-      onBooked();
-    } catch (err: unknown) {
-      setError(errorMessage(err));
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
+  const alertMessage: string | null = booking.error ?? options.error;
   const missingSelected: boolean =
-    resourceId !== "" && !resources.some((resource: Resource) => resource.id === resourceId);
+    resourceId !== "" &&
+    !options.resources.some((resource: Resource) => resource.id === resourceId);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    void booking.submit({ userId, resourceId, startTime, endTime });
+  }
 
   return (
     <section className={styles.panel} aria-labelledby="booking-heading">
       <h2 id="booking-heading">Book a time</h2>
-      <form
-        className={styles.form}
-        onSubmit={(event: FormEvent<HTMLFormElement>): void => {
-          void handleSubmit(event);
-        }}
-        noValidate
-      >
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <label className={styles.field}>
           Resource
           <select
             value={resourceId}
             onChange={(event): void => onResourceIdChange(event.target.value)}
-            disabled={isSubmitting}
+            disabled={booking.isSubmitting}
           >
             <option value="">Select a resource</option>
             {missingSelected ? <option value={resourceId}>{resourceId}</option> : null}
-            {resources.map((resource: Resource) => (
+            {options.resources.map((resource: Resource) => (
               <option key={resource.id} value={resource.id}>
                 {resource.name}
               </option>
@@ -130,7 +57,7 @@ export default function BookingForm({
             type="datetime-local"
             value={startTime}
             onChange={(event): void => setStartTime(event.target.value)}
-            disabled={isSubmitting}
+            disabled={booking.isSubmitting}
             required
           />
         </label>
@@ -140,59 +67,29 @@ export default function BookingForm({
             type="datetime-local"
             value={endTime}
             onChange={(event): void => setEndTime(event.target.value)}
-            disabled={isSubmitting}
+            disabled={booking.isSubmitting}
             required
           />
         </label>
-        {error !== null ? (
+        {alertMessage !== null ? (
           <p className={styles.error} role="alert">
-            {error}
+            {alertMessage}
           </p>
         ) : null}
-        {success !== null ? (
+        {booking.success !== null ? (
           <p className={styles.success} role="status">
-            {success}
+            {booking.success}
           </p>
         ) : null}
-        <button className={styles.submit} type="submit" disabled={isSubmitting || isLoadingOptions}>
-          {isSubmitting ? "Booking…" : "Request reservation"}
+        <button
+          className={styles.submit}
+          type="submit"
+          disabled={booking.isSubmitting || options.isLoading}
+        >
+          {booking.isSubmitting ? "Booking…" : "Request reservation"}
         </button>
       </form>
-      {isLoadingOptions ? <p className={styles.status}>Loading resources…</p> : null}
+      {options.isLoading ? <p className={styles.status}>Loading resources…</p> : null}
     </section>
   );
-}
-
-function validateBooking(
-  userId: string,
-  resourceId: string,
-  startTime: string,
-  endTime: string,
-): string | null {
-  if (userId.trim().length === 0) {
-    return "Enter a student id.";
-  }
-  if (resourceId.trim().length === 0) {
-    return "Choose a resource.";
-  }
-  if (startTime.trim().length === 0 || endTime.trim().length === 0) {
-    return "Choose a start and end time.";
-  }
-  const start: Date = new Date(startTime);
-  const end: Date = new Date(endTime);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return "Enter a valid start and end time.";
-  }
-  if (end.getTime() <= start.getTime()) {
-    return "End time must be later than start time.";
-  }
-  return null;
-}
-
-function toIsoDateTime(value: string): string | null {
-  const date: Date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date.toISOString();
 }

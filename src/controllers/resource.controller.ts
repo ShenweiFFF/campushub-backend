@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from "express";
+import { Request, Response } from "express";
 import { listResources } from "../services/resource.service";
 import { AppError, Resource } from "../types/reservation";
 
@@ -33,17 +33,9 @@ function readBooleanQuery(value: unknown): boolean | undefined {
   );
 }
 
-export async function getResources(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const typeFilter: string | undefined = readQueryString(req.query.type);
-    const isAvailable: boolean | undefined = readBooleanQuery(req.query.isAvailable);
-    const payload: Resource[] = await listResources(typeFilter, isAvailable);
-    res.status(200).json(payload);
-  } catch (err: unknown) {
-    next(err);
-  }
+export async function getResources(req: Request, res: Response): Promise<void> {
+  const typeFilter: string | undefined = readQueryString(req.query.type);
+  const isAvailable: boolean | undefined = readBooleanQuery(req.query.isAvailable);
+  const payload: Resource[] = await listResources(typeFilter, isAvailable);
+  res.status(200).json(payload);
 }

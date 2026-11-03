@@ -1,0 +1,36 @@
+# CampusHub agent rules
+
+Follow this file. Do not read paths listed in `.cursorignore` (dependencies, lockfiles, `dist/`, `build/`, coverage, logs, source maps).
+
+## Stack
+
+- Backend: TypeScript, Express, MongoDB via Mongoose. No other framework, ORM, or raw driver.
+- Client: Vite + React + TypeScript in `client/` only. Use `fetch`. No axios unless asked.
+- Do not add an npm package unless asked.
+- No `.js` source. Backend `src/` is `.ts`. React components are `.tsx`. No `any`.
+
+## Backend layers
+
+| Layer | Path | Owns | Must not |
+|---|---|---|---|
+| Routes | `src/routes/` | Path wiring | Business logic, database |
+| Controllers | `src/controllers/` | Parse the request, call a service, set status | Mongoose, try/catch |
+| Middleware | `src/middleware/errorHandler.ts` | Turn thrown errors into HTTP JSON | Business rules |
+| Services | `src/services/` | Business logic | `Request` / `Response` |
+| Models | `src/models/` | Mongoose schemas | Business logic |
+| Contracts | `src/types/contracts.ts` | Shared resource and reservation types | Express or React |
+
+Controllers throw `AppError`. Express 5 forwards that rejection to `errorHandler`. Do not wrap each handler in try/catch.
+
+## Client
+
+- Functional components with an explicit props interface.
+- Reservation fetching and submit state live in `client/src/hooks/useReservations.ts`.
+- Do not call the API from JSX.
+- Style with CSS modules.
+- Import shared models from `src/types/contracts.ts`. Do not copy those interfaces into the client.
+- Show `isLoading` and a visible error. A 409 uses: "This resource is already reserved for the selected time window".
+
+## Commits
+
+Imperative subject, under 10 words. Short body naming the rule that motivated the change. No emojis.

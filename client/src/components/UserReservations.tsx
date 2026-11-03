@@ -1,13 +1,6 @@
-import { useEffect, useState } from "react";
 import type { JSX } from "react";
-import {
-  cancelReservation,
-  errorMessage,
-  fetchResources,
-  fetchUserReservations,
-  type Reservation,
-  type Resource,
-} from "../api/campushubApi";
+import { useReservations } from "../hooks/useReservations";
+import type { Reservation, Resource } from "../api/campushubApi";
 import styles from "./UserReservations.module.css";
 
 interface UserReservationsProps {
@@ -19,63 +12,8 @@ export default function UserReservations({
   userId,
   refreshKey,
 }: UserReservationsProps): JSX.Element {
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [resources, setResources] = useState<Resource[]>([]);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState<number>(0);
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const list = useReservations(userId, refreshKey);
   const trimmedUserId: string = userId.trim();
-  const loadKey: string = `${trimmedUserId}|${refreshKey}|${reloadKey}`;
-  const isLoading: boolean = trimmedUserId.length > 0 && loadedKey !== loadKey;
-  const visibleError: string | null = isLoading ? null : error;
-  const visibleReservations: Reservation[] =
-    trimmedUserId.length > 0 && loadedKey === loadKey ? reservations : [];
-
-  useEffect(() => {
-    if (trimmedUserId.length === 0) {
-      return;
-    }
-
-    let active: boolean = true;
-    const requestedKey: string = loadKey;
-
-    Promise.all([fetchUserReservations(trimmedUserId), fetchResources()])
-      .then(([nextReservations, nextResources]: [Reservation[], Resource[]]): void => {
-        if (!active) {
-          return;
-        }
-        setReservations(nextReservations);
-        setResources(nextResources);
-        setError(null);
-        setLoadedKey(requestedKey);
-      })
-      .catch((err: unknown): void => {
-        if (!active) {
-          return;
-        }
-        setReservations([]);
-        setError(errorMessage(err));
-        setLoadedKey(requestedKey);
-      });
-
-    return (): void => {
-      active = false;
-    };
-  }, [trimmedUserId, loadKey]);
-
-  async function handleCancel(reservationId: string): Promise<void> {
-    setCancellingId(reservationId);
-    setError(null);
-    try {
-      await cancelReservation(reservationId);
-      setReloadKey((current: number): number => current + 1);
-    } catch (err: unknown) {
-      setError(errorMessage(err));
-    } finally {
-      setCancellingId(null);
-    }
-  }
 
   return (
     <section className={styles.panel} aria-labelledby="reservations-heading">
@@ -83,22 +21,22 @@ export default function UserReservations({
       {trimmedUserId.length === 0 ? (
         <p className={styles.status}>Enter a student id to see bookings.</p>
       ) : null}
-      {visibleError !== null ? (
+      {list.error !== null ? (
         <p className={styles.error} role="alert">
-          {visibleError}
+          {list.error}
         </p>
       ) : null}
-      {isLoading ? <p className={styles.status}>Loading bookings…</p> : null}
-      {!isLoading && trimmedUserId.length > 0 && visibleError === null && visibleReservations.length === 0 ? (
+      {list.isLoading ? <p className={styles.status}>Loading bookings…</p> : null}
+      {!list.isLoading && trimmedUserId.length > 0 && list.error === null && list.reservations.length === 0 ? (
         <p className={styles.status}>No active reservations.</p>
       ) : null}
       <ul className={styles.list}>
-        {visibleReservations.map((reservation: Reservation) => {
-          const isCancelling: boolean = cancellingId === reservation.id;
+        {list.reservations.map((reservation: Reservation) => {
+          const isCancelling: boolean = list.cancellingId === reservation.id;
           return (
             <li key={reservation.id} className={styles.item}>
               <div>
-                <p className={styles.name}>{resourceName(resources, reservation.resourceId)}</p>
+                <p className={styles.name}>{resourceName(list.resources, reservation.resourceId)}</p>
                 <p className={styles.when}>
                   {formatWhen(reservation.startTime)} – {formatWhen(reservation.endTime)}
                 </p>
@@ -107,9 +45,9 @@ export default function UserReservations({
               <button
                 type="button"
                 className={styles.cancel}
-                disabled={cancellingId !== null}
+                disabled={list.cancellingId !== null}
                 onClick={(): void => {
-                  void handleCancel(reservation.id);
+                  void list.cancel(reservation.id);
                 }}
               >
                 {isCancelling ? "Cancelling…" : "Cancel reservation"}

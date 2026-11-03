@@ -1,0 +1,21 @@
+﻿# Keep agents on source. Skip installs, builds, lockfiles, and generated output.
+
+node_modules/
+client/node_modules/
+
+dist/
+build/
+client/dist/
+coverage/
+
+package-lock.json
+client/package-lock.json
+
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+*.map
+**/*.js.map
+**/*.css.map
