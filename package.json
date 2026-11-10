@@ -1,27 +1,33 @@
 {
-    "name":  "campushub-backend",
-    "version":  "1.0.0",
-    "description":  "",
-    "main":  "index.js",
-    "scripts":  {
-                    "dev":  "tsc \u0026\u0026 node dist/app.js",
-                    "build":  "tsc",
-                    "seed":  "tsc \u0026\u0026 node dist/scripts/seed.js"
-                },
-    "keywords":  [
-
-                 ],
-    "type":  "commonjs",
-    "devDependencies":  {
-                            "@types/express":  "^5.0.6",
-                            "@types/node":  "^26.6.2",
-                            "eslint":  "^10.11.0",
-                            "prettier":  "^3.9.8",
-                            "ts-node":  "^10.9.2",
-                            "typescript":  "^7.0.2"
-                        },
-    "dependencies":  {
-                         "express":  "^5.2.1",
-                         "mongoose":  "^9.10.2"
-                     }
+    "name": "campushub-backend",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "dev": "tsc && node dist/app.js",
+        "build": "tsc",
+        "seed": "tsc && node dist/scripts/seed.js",
+        "test": "node --experimental-vm-modules -r ./jest-compiler.cjs ./node_modules/jest/bin/jest.js --coverage"
+    },
+    "keywords": [],
+    "type": "commonjs",
+    "devDependencies": {
+        "@types/express": "^5.0.6",
+        "@types/jest": "^30.0.0",
+        "@types/node": "^26.6.2",
+        "@types/supertest": "^7.2.1",
+        "@typescript/typescript6": "^6.0.2",
+        "eslint": "^10.11.0",
+        "jest": "^30.5.2",
+        "mongodb-memory-server": "^11.3.0",
+        "prettier": "^3.9.8",
+        "supertest": "^7.3.2",
+        "ts-jest": "^29.4.15",
+        "ts-node": "^10.9.2",
+        "typescript": "^7.0.2"
+    },
+    "dependencies": {
+        "express": "^5.2.1",
+        "mongoose": "^9.10.2"
+    }
 }
