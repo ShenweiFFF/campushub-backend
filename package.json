@@ -7,6 +7,7 @@
         "dev": "tsc && node dist/app.js",
         "build": "tsc",
         "seed": "tsc && node dist/scripts/seed.js",
+        "lint": "tsc --noEmit",
         "test": "node --experimental-vm-modules -r ./jest-compiler.cjs ./node_modules/jest/bin/jest.js --coverage"
     },
     "keywords": [],
