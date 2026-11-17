@@ -170,8 +170,10 @@ async function hasActiveOverlap(
       ...(excludeId === undefined ? {} : { _id: { $ne: excludeId } }),
       resourceId,
       status: { $in: [...ACTIVE_STATUSES] },
-      startTime: { $lt: end },
-      endTime: { $gt: start },
+      $or: [
+        { startTime: { $gte: end } },
+        { endTime: { $lte: start } },
+      ],
     })) !== null;
   return overlap;
 }
